@@ -1,0 +1,101 @@
+# Cookie-Script (CookieScript). Format: docs/providers.md.
+handle: cookie-script
+name: Cookie-Script
+website: https://cookie-script.com
+docs:
+  - https://cookie-script.com/how-to-block-third-party-cookies.html
+  - https://help.cookie-script.com/en/articles/30242
+  - https://help.cookie-script.com/en/articles/30244
+  - https://help.cookie-script.com/en/articles/30246
+  - https://help.cookie-script.com/en/articles/34534
+  - https://help.cookie-script.com/en/articles/34331
+verified: 2026-10-17
+google_partner: true
+tcf: true
+unverified:
+  - The cookie report ID is taken to be the banner ID unless you enter another.
+
+fields:
+  - handle: scriptId
+    label: Banner ID
+    type: text
+    required: true
+    instructions: In Cookie-Script, open the banner → Install → Script tag and paste it (or the ID in it).
+    example: b62c08ab61b84e127d792f54b324dd70
+    pattern: '^[0-9a-f]{32}$'
+    extract: 'cookie-script\.com/s/([0-9a-fA-F]{32})'
+    lowercase: true
+  - handle: staging
+    label: Staging code
+    type: toggle
+    default: false
+    instructions: Loads Cookie-Script's staging banner (paid plans), which only works on the staging domain set up in Cookie-Script.
+  - handle: reportId
+    label: Cookie report ID
+    type: text
+    required: false
+    default: '{scriptId}'
+    instructions: For the cookie declaration, from Settings → Install → cookie report code. Leave empty to use the banner ID.
+    example: b62c08ab61b84e127d792f54b324dd70
+    pattern: '^[0-9a-f]{32}$'
+    extract: 'report\.cookie-script\.com/r/([0-9a-fA-F]{32})'
+    lowercase: true
+
+head:
+  - tag: script
+    attrs:
+      type: text/javascript
+      charset: UTF-8
+      src:
+        - { when: staging, value: 'https://dev-cdn.cookie-script.com/s/{scriptId}.js' }
+        - { value: 'https://cdn.cookie-script.com/s/{scriptId}.js' }
+
+categories:
+  necessary: strict
+  preferences: functionality
+  analytics: performance
+  marketing: targeting
+
+blocking:
+  join: ' '
+  script_inline:
+    strategy: native
+    attrs: { type: text/plain, data-cookiescript: accepted, data-cookiecategory: '{categories}' }
+  script_src:
+    strategy: native
+    attrs: { type: text/plain, data-cookiescript: accepted, data-cookiecategory: '{categories}' }
+  iframe:
+    strategy: native
+    rename: { src: data-src }
+    attrs: { data-cookiescript: accepted, data-cookiecategory: '{categories}' }
+  img:
+    strategy: native
+    rename: { src: data-src }
+    attrs: { data-cookiescript: accepted, data-cookiecategory: '{categories}' }
+
+# Cookie-Script sends Consent Mode updates only; the site sets defaults.
+consent_mode:
+  defaults: ours
+  updates: cmp
+  wait_for_update: 500
+
+google_tags: after_cmp
+
+preferences:
+  class: csconsentlink
+
+declaration:
+  - tag: script
+    attrs:
+      type: text/javascript
+      charset: UTF-8
+      data-cookiescriptreport: report
+      src: 'https://report.cookie-script.com/r/{reportId}.js'
+
+api:
+  open: CookieScript.instance.show(), or any element with class csconsentlink
+  read: CookieScript.instance.currentState().categories
+  events: window CookieScriptLoaded, CookieScriptAccept, CookieScriptAcceptAll, CookieScriptReject
+
+notes:
+  - Turn on Google Consent Mode v2 in Cookie-Script (Settings → Google Consent Mode) so it sends updates.

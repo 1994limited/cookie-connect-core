@@ -1,0 +1,78 @@
+# Any other consent platform. Format: docs/providers.md.
+handle: custom
+name: Custom
+website: null
+docs:
+  - https://github.com/1994limited/cookie-connect-core/blob/main/docs/custom.md
+verified: 2026-10-17
+google_partner: false
+tcf: false
+
+fields:
+  - handle: headHtml
+    label: Consent platform code
+    type: code
+    required: true
+    instructions: The code your consent platform gives you for the head. It's printed first, as it is.
+  - handle: connectJs
+    label: Tell Cookie Connect about consent
+    type: code
+    required: false
+    instructions: JavaScript that runs after the code above. Call CookieConnect.set({ preferences, analytics, marketing }) from your platform's consent callback.
+    example: "window.addEventListener('my-cmp-consent', function (e) { CookieConnect.set({ analytics: e.detail.analytics, marketing: e.detail.ads }); });"
+  - handle: openJs
+    label: Open the preferences
+    type: code
+    required: false
+    instructions: JavaScript that opens your platform's cookie preferences, for Cookie settings links.
+    example: MyCmp.showPreferences();
+  - handle: cmpSetsDefaults
+    label: My platform sets Consent Mode defaults
+    type: toggle
+    default: false
+  - handle: cmpSendsUpdates
+    label: My platform sends Consent Mode updates
+    type: toggle
+    default: false
+
+head:
+  - raw: '{headHtml}'
+  - tag: script
+    when: openJs
+    content: 'CookieConnect.onOpen(function () { {openJs|raw} });'
+  - tag: script
+    when: connectJs
+    content: '{connectJs|raw}'
+
+categories:
+  necessary: necessary
+  preferences: preferences
+  analytics: analytics
+  marketing: marketing
+
+blocking:
+  script_inline: { strategy: managed }
+  script_src: { strategy: managed }
+  iframe: { strategy: managed }
+  img: { strategy: managed }
+
+consent_mode:
+  defaults:
+    - { when: cmpSetsDefaults, value: cmp }
+    - { value: ours }
+  updates:
+    - { when: cmpSendsUpdates, value: cmp }
+    - { value: ours }
+  wait_for_update: 500
+
+google_tags: after_cmp
+
+preferences:
+  class: null
+
+declaration: []
+
+api:
+  open: the code in Open the preferences
+  read: CookieConnect.set() from your code
+  events: none

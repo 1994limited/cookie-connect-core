@@ -1,0 +1,67 @@
+{
+    "name": "1994/cookie-connect-core",
+    "description": "The framework-free core shared by Cookie Connect for Craft CMS and Statamic: every cookie consent platform described as data, the head and blocking markup they need, Google Consent Mode v2, and one JavaScript consent API for all of them.",
+    "type": "library",
+    "license": "proprietary",
+    "homepage": "https://github.com/1994limited/cookie-connect-core",
+    "keywords": [
+        "cookie consent",
+        "cmp",
+        "gdpr",
+        "consent mode",
+        "cookiebot",
+        "onetrust",
+        "usercentrics"
+    ],
+    "authors": [
+        {
+            "name": "1994",
+            "email": "hello@1994.co.uk",
+            "homepage": "https://1994.co.uk"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/1994limited/cookie-connect-core/issues",
+        "source": "https://github.com/1994limited/cookie-connect-core"
+    },
+    "require": {
+        "php": "^8.2",
+        "ext-json": "*",
+        "ext-mbstring": "*",
+        "symfony/yaml": "^6.4|^7.0|^8.0"
+    },
+    "require-dev": {
+        "laravel/pint": "^1.18",
+        "phpstan/phpstan": "^2.1",
+        "phpunit/phpunit": "^11.5|^12.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "NineteenNinetyFour\\CookieConnect\\Core\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "NineteenNinetyFour\\CookieConnect\\Core\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit",
+        "lint": "pint --test",
+        "analyse": "phpstan analyse --memory-limit=1G",
+        "boundaries": "php bin/check-boundaries"
+    },
+    "config": {
+        "platform": {
+            "php": "8.2.0"
+        },
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "extra": {
+        "branch-alias": {
+            "dev-main": "1.x-dev"
+        }
+    }
+}

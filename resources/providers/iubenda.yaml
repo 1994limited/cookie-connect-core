@@ -1,0 +1,117 @@
+# iubenda Privacy Controls and Cookie Solution. Format: docs/providers.md.
+handle: iubenda
+name: iubenda
+website: https://www.iubenda.com
+docs:
+  - https://www.iubenda.com/en/help/1205-how-to-configure-your-cookie-solution-advanced-guide
+  - https://www.iubenda.com/en/help/1229-cookie-solution-preventing-the-execution-of-scripts-that-install-cookies
+  - https://www.iubenda.com/en/help/133036/-prior-blocking-of-cookies-automatic-blocking-auto-blocking
+  - https://www.iubenda.com/en/help/27137-google-consent-mode
+  - https://www.iubenda.com/p/en/help/185529-google-consent-mode-troubleshooting-guide-2/
+verified: 2026-10-17
+google_partner: true
+tcf: true
+unverified:
+  - The widget code's format isn't documented; we accept letters, digits and hyphens.
+  - iubenda documents its callbacks for the inline configuration; with the one-line widget embed, Cookie Connect also reads the choice from iubenda's API once it loads.
+
+fields:
+  - handle: widgetCode
+    label: Embed code
+    type: text
+    required: true
+    instructions: In iubenda, open Privacy Controls and Cookie Solution → Embed and paste the script (embeds.iubenda.com/widgets/…).
+    example: 8a1b2c3d-4e5f-6789-abcd-ef0123456789
+    pattern: '^[A-Za-z0-9-]{4,64}$'
+    extract: 'embeds\.iubenda\.com/widgets/([A-Za-z0-9-]+)\.js'
+  - handle: siteId
+    label: Site ID
+    type: text
+    required: true
+    instructions: The number in your iubenda dashboard's address for this site (also in the autoblocking or sync script). Needed for Google Consent Mode.
+    example: '1234567'
+    pattern: '^\d{4,12}$'
+    extract: '(?:"siteId"\s*:\s*|/(?:autoblocking|sync)/)(\d{4,12})'
+  - handle: cookiePolicyId
+    label: Cookie policy ID
+    type: text
+    required: false
+    instructions: For the cookie declaration. The number in your cookie policy's address (iubenda.com/privacy-policy/…/cookie-policy).
+    example: '12345678'
+    pattern: '^\d{4,12}$'
+    extract: '(?:privacy-policy/|"cookiePolicyId"\s*:\s*)(\d{4,12})'
+  - handle: autoBlocking
+    label: Automatic blocking
+    type: toggle
+    default: false
+    instructions: Only if Automatic blocking is on in iubenda (Block scripts prior to consent).
+
+head:
+  - tag: script
+    attrs:
+      type: text/javascript
+      src:
+        - { when: autoBlocking, value: 'https://cs.iubenda.com/autoblocking/{siteId}.js' }
+        - { value: 'https://cs.iubenda.com/sync/{siteId}.js' }
+  - tag: script
+    attrs:
+      type: text/javascript
+      src: 'https://embeds.iubenda.com/widgets/{widgetCode}.js'
+
+categories:
+  necessary: '1'
+  preferences: '2'
+  analytics: '4'
+  marketing: '5'
+
+blocking:
+  join: ','
+  script_inline:
+    strategy: native
+    attrs: { type: text/plain, class: _iub_cs_activate, data-iub-purposes: '{categories}' }
+  script_src:
+    strategy: native
+    rename: { src: data-suppressedsrc }
+    attrs: { type: text/plain, class: _iub_cs_activate, data-iub-purposes: '{categories}' }
+  iframe:
+    strategy: native
+    rename: { src: data-suppressedsrc }
+    attrs: { src: 'about:blank', class: _iub_cs_activate, data-iub-purposes: '{categories}' }
+  img:
+    strategy: native
+    rename: { src: data-suppressedsrc }
+    attrs: { src: 'about:blank', class: _iub_cs_activate, data-iub-purposes: '{categories}' }
+
+# iubenda sets Consent Mode defaults itself and asks sites to remove their own.
+consent_mode:
+  defaults: cmp
+  updates: cmp
+
+google_tags: after_cmp
+
+preferences:
+  class: iubenda-cs-preferences-link
+
+declaration:
+  - tag: a
+    when: cookiePolicyId
+    attrs:
+      href: 'https://www.iubenda.com/privacy-policy/{cookiePolicyId}/cookie-policy'
+      class: iubenda-white iub-body-embed iubenda-embed
+      title: Cookie Policy
+    content: Cookie Policy
+  - tag: script
+    when: cookiePolicyId
+    attrs:
+      type: text/javascript
+      src: https://cdn.iubenda.com/iubenda.js
+      async: true
+
+api:
+  open: _iub.cs.api.openPreferences()
+  read: _iub.cs.api.getPreferences().purposes
+  events: _iub.csConfiguration.callback onReady, onPreferenceExpressed
+
+notes:
+  - Turn on per-category consent in iubenda (Per-purpose consent), or every category is accepted or rejected together.
+  - iubenda's Experience purpose (3) has no Cookie Connect category. Put scripts that need it under Preferences and set Preferences to 2,3 under Category mapping if you need both.

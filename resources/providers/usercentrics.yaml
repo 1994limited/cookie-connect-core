@@ -1,0 +1,103 @@
+# Usercentrics Web CMP v3. Format: docs/providers.md.
+handle: usercentrics
+name: Usercentrics
+website: https://usercentrics.com
+docs:
+  - https://usercentrics.com/docs/web/implementation/ui/
+  - https://usercentrics.com/docs/web/features/auto-blocking/
+  - https://usercentrics.com/docs/web/features/api/control-ui/
+  - https://usercentrics.com/docs/web/features/events/uc-consent/
+  - https://usercentrics.com/docs/web/features/embeddings/embeddings/
+  - https://usercentrics.com/docs/web/features/google-consent-mode/general-information/
+verified: 2026-10-17
+google_partner: true
+tcf: true
+unverified:
+  - The Settings ID format isn't documented; we accept 6–20 letters, digits, - and _.
+
+fields:
+  - handle: settingsId
+    label: Settings ID
+    type: text
+    required: true
+    instructions: Shown at the top of the Usercentrics Admin Interface, and under Implementation → Script Tag. You can paste the whole script tag instead.
+    example: y05NPaJsbGnT2v
+    pattern: '^[A-Za-z0-9_-]{6,20}$'
+    extract: 'data-(?:settings|ruleset)-id=["'']?([A-Za-z0-9_-]{6,20})'
+  - handle: idType
+    label: ID type
+    type: select
+    options:
+      settings: Settings ID
+      ruleset: Ruleset ID (geolocation rulesets)
+    default: settings
+  - handle: autoBlocking
+    label: Automatic blocking
+    type: toggle
+    default: false
+    instructions: Turn on only if Auto blocking is on in Implementation → Script Tag (not every plan has it).
+  - handle: tcf
+    label: IAB TCF
+    type: toggle
+    default: false
+  - handle: draft
+    label: Show the draft configuration
+    type: toggle
+    default: false
+    instructions: Previews unpublished changes. Use on staging only.
+
+head:
+  - tag: script
+    when: autoBlocking
+    attrs:
+      src: https://web.cmp.usercentrics.eu/modules/autoblocker.js
+  - tag: script
+    attrs:
+      id: usercentrics-cmp
+      src: https://web.cmp.usercentrics.eu/ui/loader.js
+      data-settings-id: { value: '{settingsId}', when: 'idType!=ruleset' }
+      data-ruleset-id: { value: '{settingsId}', when: 'idType=ruleset' }
+      data-language: '{lang}'
+      data-tcf-enabled: { value: true, when: tcf }
+      data-draft: { value: 'true', when: draft }
+      async: true
+
+exempt:
+  data-uc-allowed: { value: 'true', when: autoBlocking }
+
+# Usercentrics blocks by service name in markup, so the helper uses Cookie
+# Connect's own blocking, released by category. Category ids are the ones in
+# Usercentrics → Service Settings → Categories.
+categories:
+  necessary: essential
+  preferences: functional
+  analytics: marketing
+  marketing: marketing
+
+blocking:
+  script_inline: { strategy: managed }
+  script_src: { strategy: managed }
+  iframe: { strategy: managed }
+  img: { strategy: managed }
+
+consent_mode:
+  defaults: ours
+  updates: cmp
+  wait_for_update: 2000
+
+google_tags: after_cmp
+
+declaration:
+  - tag: div
+    attrs:
+      class: uc-embed
+      uc-embed-type: category
+
+api:
+  open: __ucCmp.showSecondLayer()
+  read: (await __ucCmp.getConsentDetails()).categories[id].state
+  events: window UC_CONSENT (on load and on change), UC_UI_INITIALIZED
+
+notes:
+  - Usercentrics has no Analytics category out of the box, so Analytics follows your Marketing category. If you've added an Analytics category, enter its id under Category mapping.
+  - Consent Mode updates come from your Google services in Usercentrics (Google Analytics, Google Ads). Make sure they're added there.

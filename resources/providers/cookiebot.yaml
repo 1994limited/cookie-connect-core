@@ -1,0 +1,108 @@
+# Cookiebot by Usercentrics. Format: docs/providers.md.
+handle: cookiebot
+name: Cookiebot
+website: https://www.cookiebot.com
+docs:
+  - https://www.cookiebot.com/en/developer/
+  - https://support.cookiebot.com/hc/en-us/articles/10714664673564
+  - https://support.cookiebot.com/hc/en-us/articles/360009074960
+  - https://support.cookiebot.com/hc/en-us/articles/4405978132242
+  - https://support.cookiebot.com/hc/en-us/articles/360016047000
+  - https://support.cookiebot.com/hc/en-us/articles/4530208762396
+verified: 2026-10-17
+google_partner: true
+tcf: true
+
+fields:
+  - handle: cbid
+    label: Domain Group ID
+    type: text
+    required: true
+    instructions: In Cookiebot, go to Settings → Your scripts. You can paste the whole script there instead; we'll take the ID out of it.
+    example: 1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d
+    pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+    extract: '(?:data-cbid=["'']?|cbid=)([0-9a-fA-F-]{36})'
+    lowercase: true
+  - handle: cdn
+    label: Hosting
+    type: select
+    options:
+      com: Worldwide (consent.cookiebot.com)
+      eu: EU only (consent.cookiebot.eu)
+    default: com
+    instructions: Use EU only if your Cookiebot account is set up for the EU CDN.
+  - handle: autoBlocking
+    label: Automatic cookie blocking
+    type: toggle
+    default: false
+    instructions: Cookiebot blocks known scripts by itself. Scripts you mark with the consent helper are still handled.
+  - handle: tcf
+    label: IAB TCF 2.2
+    type: toggle
+    default: false
+    instructions: Only if you show ads that need the IAB Transparency and Consent Framework.
+
+head:
+  - tag: script
+    attrs:
+      id: Cookiebot
+      src: 'https://consent.cookiebot.{cdn}/uc.js'
+      data-cbid: '{cbid}'
+      data-culture: '{lang}'
+      data-blockingmode: { value: auto, when: autoBlocking }
+      data-framework: { value: TCF, when: tcf }
+      type: text/javascript
+      async: { value: true, when: '!autoBlocking' }
+
+# Added to our own scripts so the auto-blocker leaves them alone.
+exempt:
+  data-cookieconsent: { value: ignore, when: autoBlocking }
+
+categories:
+  necessary: null
+  preferences: preferences
+  analytics: statistics
+  marketing: marketing
+
+blocking:
+  join: ','
+  script_inline:
+    strategy: native
+    attrs: { type: text/plain, data-cookieconsent: '{categories}' }
+  script_src:
+    strategy: native
+    attrs: { type: text/plain, data-cookieconsent: '{categories}' }
+  iframe:
+    strategy: native
+    rename: { src: data-cookieblock-src }
+    attrs: { data-cookieconsent: '{categories}' }
+  img:
+    strategy: native
+    rename: { src: data-cookieblock-src }
+    attrs: { data-cookieconsent: '{categories}' }
+
+consent_mode:
+  defaults: ours
+  updates: cmp
+  wait_for_update: 500
+
+google_tags: after_cmp
+
+preferences:
+  class: null
+
+declaration:
+  - tag: script
+    attrs:
+      id: CookieDeclaration
+      src: 'https://consent.cookiebot.{cdn}/{cbid}/cd.js'
+      type: text/javascript
+      async: true
+
+api:
+  open: Cookiebot.renew()
+  read: Cookiebot.consent.{preferences,statistics,marketing}
+  events: window CookiebotOnConsentReady, CookiebotOnAccept, CookiebotOnDecline
+
+notes:
+  - Add every domain the site runs on (staging too) to the domain group in Cookiebot, or the banner and declaration won't load there.

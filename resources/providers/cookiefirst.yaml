@@ -1,0 +1,93 @@
+# CookieFirst. Format: docs/providers.md.
+handle: cookiefirst
+name: CookieFirst
+website: https://cookiefirst.com
+docs:
+  - https://support.cookiefirst.com/hc/en-us/articles/360011568738
+  - https://support.cookiefirst.com/hc/en-us/articles/360011433437
+  - https://support.cookiefirst.com/hc/en-us/articles/360013653618
+  - https://support.cookiefirst.com/hc/en-us/articles/19755784990621
+  - https://support.cookiefirst.com/hc/en-us/articles/5306744274577
+verified: 2026-10-17
+google_partner: true
+tcf: true
+unverified:
+  - CookieFirst shows one category per element in its docs, so elements that need several categories use Cookie Connect's own blocking.
+
+fields:
+  - handle: apiKey
+    label: API key
+    type: text
+    required: true
+    instructions: In CookieFirst, go to Sites → Settings → Your embed script and paste the script (or the API key).
+    example: 5ba84e88-816a-41b8-88b3-e8ec9218d098
+    pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+    extract: '(?:-|data-cookiefirst-key=["'']?)([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})(?:/consent\.js|["''\s>]|$)'
+    lowercase: true
+  - handle: domain
+    label: Domain
+    type: text
+    required: false
+    default: '{host}'
+    instructions: The domain as it's set up in CookieFirst, without www. Leave empty to use this site's own domain.
+    example: example.com
+    pattern: '^(\*\.)?[a-z0-9.-]+\.[a-z]{2,}$'
+    extract: 'sites/([^/]+?)-[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/consent\.js'
+    extract_from: apiKey
+    lowercase: true
+  - handle: cookiefirstDefaults
+    label: CookieFirst sets Consent Mode defaults
+    type: toggle
+    default: false
+    instructions: Turn on only if you've set Consent Mode defaults in CookieFirst's dashboard (Google consent mode settings). Otherwise Cookie Connect sets them.
+
+head:
+  - tag: script
+    attrs:
+      src: 'https://consent.cookiefirst.com/sites/{domain}-{apiKey}/consent.js'
+
+categories:
+  necessary: necessary
+  preferences: functional
+  analytics: performance
+  marketing: advertising
+
+blocking:
+  multiple: false
+  script_inline:
+    strategy: native
+    attrs: { type: text/plain, data-cookiefirst-category: '{categories}' }
+  script_src:
+    strategy: native
+    rename: { src: data-src }
+    attrs: { type: text/plain, data-cookiefirst-category: '{categories}' }
+  iframe:
+    strategy: native
+    rename: { src: data-src }
+    attrs: { data-cookiefirst-category: '{categories}' }
+  img: { strategy: managed }
+
+consent_mode:
+  defaults:
+    - { when: cookiefirstDefaults, value: cmp }
+    - { value: ours }
+  updates: cmp
+  wait_for_update: 2000
+
+google_tags: after_cmp
+
+preferences:
+  class: null
+
+declaration:
+  - tag: div
+    attrs: { id: cookiefirst-policy-page }
+
+api:
+  open: CookieFirst.openPanel()
+  read: CookieFirst.consent
+  events: window cf_init, cf_consent_loaded, cf_consent
+
+notes:
+  - CookieFirst reloads the page when a visitor changes their choice.
+  - Turn on Google consent mode in CookieFirst so it sends Consent Mode updates.

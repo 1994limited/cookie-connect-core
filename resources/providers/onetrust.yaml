@@ -1,0 +1,103 @@
+# OneTrust Cookie Consent (and CookiePro). Format: docs/providers.md.
+handle: onetrust
+name: OneTrust
+website: https://www.onetrust.com/products/cookie-consent/
+docs:
+  - https://developer.onetrust.com/onetrust/docs/javascript-api
+  - https://developer.onetrust.com/onetrust/docs/javascript-events-guide
+  - https://developer.onetrust.com/onetrust/docs/using-google-consent-mode
+  - https://developer.onetrust.com/onetrust/docs/content-security-policy-cdn
+verified: 2026-10-17
+google_partner: true
+tcf: true
+unverified:
+  - OneTrust's group IDs can be changed per account. The defaults here (C0001–C0004) are OneTrust's; check yours in Categorizations → Categories.
+  - The CookiePro CDN path is assumed to match OneTrust's.
+
+fields:
+  - handle: domainScript
+    label: Domain script ID
+    type: text
+    required: true
+    instructions: In OneTrust, go to Cookie Consent → Scripts, pick the domain and copy data-domain-script (or paste the whole script). Production IDs only work on their own domain; the test ID ends in -test and works anywhere.
+    example: 01234567-89ab-cdef-0123-456789abcdef
+    pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(-test)?$'
+    extract: 'data-domain-script=["'']?([0-9a-fA-F-]{36}(?:-test)?)'
+    lowercase: true
+  - handle: cdn
+    label: CDN
+    type: select
+    options:
+      cdn.cookielaw.org: OneTrust (cdn.cookielaw.org)
+      cookie-cdn.cookiepro.com: CookiePro (cookie-cdn.cookiepro.com)
+    default: cdn.cookielaw.org
+  - handle: autoBlocking
+    label: Automatic blocking
+    type: toggle
+    default: false
+    instructions: Only if "Enable Automatic Blocking of Cookies" is on when you publish the script in OneTrust.
+  - handle: documentLanguage
+    label: Use the page's language
+    type: toggle
+    default: true
+    instructions: Shows the banner in the language of the page (the html lang attribute).
+
+head:
+  - tag: script
+    when: autoBlocking
+    attrs:
+      type: text/javascript
+      src: 'https://{cdn}/consent/{domainScript}/OtAutoBlock.js'
+  - tag: script
+    attrs:
+      src: 'https://{cdn}/scripttemplates/otSDKStub.js'
+      type: text/javascript
+      charset: UTF-8
+      data-document-language: { value: 'true', when: documentLanguage }
+      data-domain-script: '{domainScript}'
+  - tag: script
+    attrs: { type: text/javascript }
+    content: 'function OptanonWrapper() { }'
+
+categories:
+  necessary: C0001
+  preferences: C0003
+  analytics: C0002
+  marketing: C0004
+
+blocking:
+  join: '-'
+  script_inline:
+    strategy: native
+    attrs: { type: text/plain, class: 'optanon-category-{categories}' }
+  script_src:
+    strategy: native
+    attrs: { type: text/plain, class: 'optanon-category-{categories}' }
+  iframe:
+    strategy: native
+    rename: { src: data-src }
+    attrs: { class: 'optanon-category-{categories}' }
+  img: { strategy: managed }
+
+consent_mode:
+  defaults: ours
+  updates: cmp
+  wait_for_update: 500
+
+# OneTrust: defaults "must be called before Google Tags or OneTrust loads".
+google_tags: before_cmp
+
+preferences:
+  class: null
+
+declaration:
+  - tag: div
+    attrs: { id: ot-sdk-cookie-policy }
+
+api:
+  open: OneTrust.ToggleInfoDisplay()
+  read: window.OnetrustActiveGroups (",C0001,C0002,")
+  events: window OneTrustGroupsUpdated (on load and on change)
+
+notes:
+  - Turn on Google Consent Mode in each geolocation rule in OneTrust so it sends updates.

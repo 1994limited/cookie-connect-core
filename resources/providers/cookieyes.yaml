@@ -1,0 +1,77 @@
+# CookieYes. Format: docs/providers.md.
+handle: cookieyes
+name: CookieYes
+website: https://www.cookieyes.com
+docs:
+  - https://www.cookieyes.com/documentation/implement-prior-consent-using-cookieyes/
+  - https://www.cookieyes.com/documentation/retrieving-consent-data-using-api-getckyconsent/
+  - https://www.cookieyes.com/documentation/events-on-cookie-banner-load/
+  - https://www.cookieyes.com/documentation/events-on-cookie-banner-interactions/
+  - https://www.cookieyes.com/documentation/add-revisit-consent-button-footer/
+  - https://www.cookieyes.com/documentation/implementing-google-consent-mode-using-cookieyes/
+verified: 2026-10-17
+google_partner: true
+tcf: true
+unverified:
+  - The website key format isn't documented; the keys we've seen are 24 hex characters.
+  - The cookie list placeholder (cky-audit-table-element) was seen on cookieyes.com, not in the docs.
+  - revisitCkyConsent() was seen on cookieyes.com, not in the docs; the cky-banner-element class is documented.
+
+fields:
+  - handle: websiteKey
+    label: Website key
+    type: text
+    required: true
+    instructions: In CookieYes, go to Advanced Settings → Get Installation Code and paste the code (or the part after client_data/).
+    example: e5ee5d26e0341217ffb7eccd
+    pattern: '^[A-Za-z0-9]{10,40}$'
+    extract: 'client_data/([A-Za-z0-9]+)/script\.js'
+
+head:
+  - tag: script
+    attrs:
+      id: cookieyes
+      type: text/javascript
+      src: 'https://cdn-cookieyes.com/client_data/{websiteKey}/script.js'
+
+categories:
+  necessary: necessary
+  preferences: functional
+  analytics: analytics
+  marketing: advertisement
+
+# CookieYes only marks scripts with a src, one category each. Everything
+# else uses Cookie Connect's own blocking.
+blocking:
+  multiple: false
+  script_src:
+    strategy: native
+    attrs: { data-cookieyes: 'cookieyes-{categories}' }
+  script_inline: { strategy: managed }
+  iframe: { strategy: managed }
+  img: { strategy: managed }
+
+consent_mode:
+  defaults: ours
+  updates: cmp
+  wait_for_update: 2000
+
+# CookieYes: advanced mode loads Google tags before CookieYes, basic after.
+google_tags:
+  - { when: 'mode=basic', value: after_cmp }
+  - { value: before_cmp }
+
+preferences:
+  class: cky-banner-element
+
+declaration:
+  - tag: div
+    attrs: { class: cky-audit-table-element }
+
+api:
+  open: revisitCkyConsent(), or any element with class cky-banner-element
+  read: getCkyConsent().categories
+  events: document cookieyes_banner_load, cookieyes_consent_update
+
+notes:
+  - Turn on Support GCM in CookieYes (Cookie Banner → General) so it sends Consent Mode updates.

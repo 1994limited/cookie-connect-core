@@ -1,0 +1,116 @@
+# Termly. Format: docs/providers.md.
+handle: termly
+name: Termly
+website: https://termly.io
+docs:
+  - https://support.termly.io/hc/en-us/articles/30710458065681
+  - https://support.termly.io/hc/en-us/articles/30710482292881
+  - https://support.termly.io/hc/en-us/articles/30710536446993
+  - https://support.termly.io/hc/en-us/articles/30710442081553
+  - https://support.termly.io/hc/en-us/articles/30710537528977
+  - https://support.termly.io/hc/en-us/articles/30710497674257
+  - https://support.termly.io/hc/en-us/articles/30710457479953
+  - https://support.termly.io/hc/en-us/articles/30710497428497
+verified: 2026-10-17
+google_partner: true
+tcf: true
+unverified:
+  - Termly shows one category per element in its docs, so elements that need several categories use Cookie Connect's own blocking.
+
+fields:
+  - handle: websiteUuid
+    label: Website UUID
+    type: text
+    required: true
+    instructions: In Termly, go to Consent Banner → Install and paste the script (or just the ID in it).
+    example: 1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d
+    pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+    extract: '(?:resource-blocker/|data-website-uuid=["'']?)([0-9a-fA-F-]{36})'
+    lowercase: true
+  - handle: autoBlocking
+    label: Auto Blocker
+    type: toggle
+    default: true
+    instructions: Termly's Auto Blocker blocks known scripts by itself. It's on in Termly's own install code.
+  - handle: termlyConsentMode
+    label: Termly handles Google Consent Mode
+    type: toggle
+    default: true
+    instructions: Termly sets Consent Mode defaults and updates itself when it's turned on in Consent Settings → Google Consent Mode. Turn this off to let Cookie Connect do it instead.
+  - handle: policyUuid
+    label: Cookie policy ID
+    type: text
+    required: false
+    instructions: For the cookie declaration. From your cookie policy's Code Snippet in Termly (data-id="…"). It's not the same as the website UUID.
+    example: 9f8e7d6c-5b4a-3928-1706-f5e4d3c2b1a0
+    pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+    extract: 'data-id=["'']?([0-9a-fA-F-]{36})'
+    lowercase: true
+
+head:
+  - tag: script
+    when: '!termlyConsentMode'
+    attrs: { type: text/javascript }
+    content: 'window.TERMLY_FORCE_DISABLE_GCM = true;'
+  - tag: script
+    attrs:
+      type: text/javascript
+      src:
+        - { when: autoBlocking, value: 'https://app.termly.io/resource-blocker/{websiteUuid}?autoBlock=on' }
+        - { value: 'https://app.termly.io/resource-blocker/{websiteUuid}?autoBlock=off' }
+
+categories:
+  necessary: essential
+  preferences: performance
+  analytics: analytics
+  marketing: advertising
+
+blocking:
+  multiple: false
+  script_inline:
+    strategy: native
+    attrs: { type: text/plain, data-categories: '{categories}' }
+  script_src:
+    strategy: native
+    attrs: { type: text/plain, data-categories: '{categories}' }
+  iframe:
+    strategy: native
+    rename: { src: data-src }
+    attrs: { data-categories: '{categories}' }
+  img:
+    strategy: native
+    rename: { src: data-src }
+    attrs: { data-categories: '{categories}' }
+
+consent_mode:
+  defaults:
+    - { when: termlyConsentMode, value: cmp }
+    - { value: ours }
+  updates:
+    - { when: termlyConsentMode, value: cmp }
+    - { value: ours }
+  wait_for_update: 500
+
+google_tags: after_cmp
+
+preferences:
+  class: termly-display-preferences
+
+declaration:
+  - tag: div
+    when: policyUuid
+    attrs:
+      name: termly-embed
+      data-id: '{policyUuid}'
+      data-type: iframe
+  - tag: script
+    when: policyUuid
+    attrs:
+      type: text/javascript
+      src: https://app.termly.io/embed-policy.min.js
+      async: true
+
+api:
+  open: displayPreferenceModal(), or any element with class termly-display-preferences
+  read: Termly.getConsentState()
+  events: Termly.on('initialized'), Termly.on('consent')

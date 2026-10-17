@@ -1,0 +1,12 @@
+{
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "build": "esbuild resources/runtime/cookie-connect.js --minify --legal-comments=inline --target=es2017 --outfile=resources/runtime/cookie-connect.min.js",
+        "test": "node --test tests/js/*.test.js"
+    },
+    "devDependencies": {
+        "esbuild": "0.25.10",
+        "jsdom": "26.1.0"
+    }
+}
