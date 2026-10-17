@@ -194,7 +194,7 @@ final class Renderer
      */
     public function settingsLink(string $text, array $attributes = [], string $tag = 'button'): string
     {
-        $class = trim('cookie-connect-settings '.($this->isLive() ? (string) $this->provider?->preferencesClass : '').' '.($attributes['class'] ?? ''));
+        $class = implode(' ', array_filter(['cookie-connect-settings', $this->isLive() ? $this->provider?->preferencesClass : null, is_string($attributes['class'] ?? null) ? trim($attributes['class']) : null]));
         unset($attributes['class']);
 
         $base = $tag === 'a'
