@@ -254,6 +254,18 @@ class RendererTest extends TestCase
         );
     }
 
+    public function test_tokens_in_content_become_the_declaration_and_a_settings_link(): void
+    {
+        $renderer = $this->renderer('onetrust');
+        $html = '<p>{cookie_declaration}</p><p>Change your mind: {cookie_settings}.</p><p>{cookie_other}</p>';
+
+        $this->assertSame(
+            '<div class="cookie-connect-declaration">'."\n".'<div id="ot-sdk-cookie-policy"></div>'."\n".'</div>'
+            .'<p>Change your mind: <a href="#cookie-settings" class="cookie-connect-settings" data-cookie-connect-open>Cookie settings</a>.</p><p>{cookie_other}</p>',
+            $renderer->replaceTokens($html, 'Cookie settings'),
+        );
+    }
+
     public function test_the_context_tidies_host_and_language(): void
     {
         $context = new Context('https://WWW.Example.com:8080/path', 'en-GB');

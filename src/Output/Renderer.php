@@ -212,6 +212,39 @@ final class Renderer
     }
 
     /**
+     * Swaps the tokens editors can type into content for the real thing:
+     * {cookie_declaration} for the declaration and {cookie_settings} for a
+     * Cookie settings link. A token wrapped in its own paragraph loses the
+     * paragraph, so the declaration isn't nested inside one.
+     */
+    public function replaceTokens(string $html, string $settingsText): string
+    {
+        if (! str_contains($html, '{cookie_')) {
+            return $html;
+        }
+
+        $replacements = [
+            'cookie_declaration' => fn () => $this->declaration(),
+            'cookie_settings' => fn () => $this->settingsLink($settingsText, [], 'a'),
+        ];
+
+        return (string) preg_replace_callback(
+            '~(<p>\s*)?\{(cookie_declaration|cookie_settings)\}(\s*</p>)?~',
+            function (array $m) use ($replacements) {
+                $html = $replacements[$m[2]]();
+                $wrapped = ($m[1] ?? '') !== '' && ($m[3] ?? '') !== '';
+
+                if ($m[2] === 'cookie_declaration' && $wrapped) {
+                    return $html;
+                }
+
+                return ($m[1] ?? '').$html.($m[3] ?? '');
+            },
+            $html,
+        );
+    }
+
+    /**
      * What the browser script is told.
      *
      * @return array<string, mixed>

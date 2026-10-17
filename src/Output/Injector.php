@@ -16,7 +16,10 @@ final class Injector
 
     public const BODY_END = '<!-- Cookie Connect: body end -->';
 
-    public static function inject(string $page, string $head, string $bodyStart = '', string $bodyEnd = ''): string
+    /**
+     * @param  (callable(string): string)|null  $body  changes the body's HTML, e.g. Renderer::replaceTokens()
+     */
+    public static function inject(string $page, string $head, string $bodyStart = '', string $bodyEnd = '', ?callable $body = null): string
     {
         if (! preg_match('/<head(?=[\s>])[^>]*>/i', $page, $m, PREG_OFFSET_CAPTURE)) {
             return $page;
@@ -35,6 +38,11 @@ final class Injector
 
         if ($bodyEnd !== '' && ! str_contains($page, self::BODY_END) && ($at = strripos($page, '</body>')) !== false) {
             $page = substr($page, 0, $at).$bodyEnd."\n".substr($page, $at);
+        }
+
+        if ($body !== null && preg_match('/<body(?=[\s>])/i', $page, $b, PREG_OFFSET_CAPTURE)) {
+            $at = (int) $b[0][1];
+            $page = substr($page, 0, $at).$body(substr($page, $at));
         }
 
         return $page;

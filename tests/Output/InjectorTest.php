@@ -22,6 +22,16 @@ class InjectorTest extends TestCase
         );
     }
 
+    public function test_it_can_change_the_body_but_not_the_head(): void
+    {
+        $page = '<html><head><title>{x}</title></head><body><p>{x}</p></body></html>';
+
+        $this->assertSame(
+            '<html><head><title>{x}</title></head><body><p>y</p></body></html>',
+            Injector::inject($page, '', '', '', fn (string $body) => str_replace('{x}', 'y', $body)),
+        );
+    }
+
     public function test_a_block_a_template_already_printed_is_not_added_again(): void
     {
         $page = '<html><head>'.self::HEAD.'</head><body></body></html>';
