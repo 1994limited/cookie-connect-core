@@ -239,13 +239,13 @@ final class Renderer
             '~(<p>\s*)?\{(cookie_declaration|cookie_settings)\}(\s*</p>)?~',
             function (array $m) use ($replacements) {
                 $html = $replacements[$m[2]]();
-                $wrapped = ($m[1] ?? '') !== '' && ($m[3] ?? '') !== '';
+                $wrapped = $m[1] !== '' && ($m[3] ?? '') !== '';
 
                 if ($m[2] === 'cookie_declaration' && $wrapped) {
                     return $html;
                 }
 
-                return ($m[1] ?? '').$html.($m[3] ?? '');
+                return $m[1].$html.($m[3] ?? '');
             },
             $html,
         );
