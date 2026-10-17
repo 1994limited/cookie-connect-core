@@ -1,6 +1,6 @@
-/*!
- * Cookie Connect: one consent API for every cookie consent platform.
- * (c) 1994 Limited. Commercial software, see LICENSE.md.
+/*! Cookie Connect | (c) 1994 Limited | Commercial software, see LICENSE.md */
+/*
+ * One consent API for every cookie consent platform.
  *
  * Printed inline in <head> before the consent platform's own script, with
  * window.CookieConnectConfig set just before it. It:
@@ -126,7 +126,8 @@
     known = true;
     var detail = snapshot();
 
-    if (config.consentMode && config.consentMode.update && config.state === 'live') {
+    // Nothing to tell Google until something is allowed or the visitor has chosen: the defaults already say "denied".
+    if (config.consentMode && config.consentMode.update && config.state === 'live' && (state.decided || OPTIONAL.some(function (c) { return state[c]; }))) {
       consentModeUpdate();
     }
 
@@ -263,6 +264,16 @@
       found[i].hidden = allows(found[i].getAttribute('data-cookie-connect-placeholder'));
     }
   }
+
+  // Blocked iframes and images take no space until they're allowed (a placeholder can stand in).
+  (function () {
+    var style = document.createElement('style');
+    if (nonce) { style.setAttribute('nonce', nonce); }
+    style.textContent = 'iframe[data-cookie-connect],img[data-cookie-connect],'
+      + 'iframe[data-cookie-connect-native]:not([src]),iframe[data-cookie-connect-native][src="about:blank"],'
+      + 'img[data-cookie-connect-native]:not([src]),img[data-cookie-connect-native][src="about:blank"]{display:none!important}';
+    (document.head || document.documentElement).appendChild(style);
+  })();
 
   /* Cookie settings links -------------------------------------------------- */
 

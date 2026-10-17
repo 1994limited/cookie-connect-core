@@ -246,6 +246,21 @@ test('sends Consent Mode updates when told to, mapped by category', async () => 
   });
 });
 
+test('sends no Consent Mode update while nothing is allowed and nobody has chosen', { timeout: 8000 }, async () => {
+  const window = page({ config: { provider: 'custom', state: 'live', consentMode: { update: true, types: (await import('./page.js')).TYPES } } });
+  await window.CookieConnect.ready;
+
+  assert.equal(consentCommands(window).length, 0);
+});
+
+test('hides blocked iframes and images until they are allowed', async () => {
+  const window = page({ body: '<iframe data-cookie-connect="marketing" data-cookie-connect-src="https://x.test"></iframe>' });
+  await window.CookieConnect.ready;
+
+  assert.equal(window.getComputedStyle(window.document.querySelector('iframe')).display, 'none');
+  assert.equal(window.document.querySelector('style').getAttribute('nonce'), 'abc123');
+});
+
 test('does not send Consent Mode updates when the platform does', async () => {
   const window = page({ config: { provider: 'custom', state: 'live' } });
   window.CookieConnect.set({ analytics: true });

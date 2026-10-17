@@ -41,6 +41,8 @@ final class Renderer
     /** @var list<string> */
     private array $inline = [];
 
+    private ?string $page = null;
+
     public function __construct(
         private readonly Settings $settings,
         private readonly Context $context = new Context,
@@ -89,8 +91,13 @@ final class Renderer
         return (new Validator($this->providers))->problems($this->settings);
     }
 
-    public function head(): string
+    /**
+     * @param  string|null  $page  the rest of the page, when known: Google tags already on it (from SEOmatic, another
+     *                             plugin or a template) aren't added again
+     */
+    public function head(?string $page = null): string
     {
+        $this->page = $page;
         $live = $this->isLive();
         $parts = [];
 
@@ -337,7 +344,13 @@ final class Renderer
         $google = $this->settings->google;
         $parts = [];
 
-        if ($google->gtmId !== null) {
+        foreach (array_filter([$google->gtmId, $google->ga4Id]) as $id) {
+            if ($this->onPage($id)) {
+                $parts[] = "<!-- Cookie Connect: {$id} is already on this page, so it isn't added again. -->";
+            }
+        }
+
+        if ($google->gtmId !== null && ! $this->onPage($google->gtmId)) {
             $id = $this->json($google->gtmId);
             $parts[] = $this->script(
                 "(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});"
@@ -348,7 +361,7 @@ final class Renderer
             );
         }
 
-        if ($google->ga4Id !== null) {
+        if ($google->ga4Id !== null && ! $this->onPage($google->ga4Id)) {
             $id = $this->json($google->ga4Id);
             $ga4 = Tag::make('script', ['async' => true, 'src' => 'https://www.googletagmanager.com/gtag/js?id='.rawurlencode($google->ga4Id)])
                 ."\n".Tag::make('script', [], "window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config',{$id});");
@@ -361,6 +374,21 @@ final class Renderer
         }
 
         return implode("\n", $parts);
+    }
+
+    /**
+     * Whether a Google tag ID is loaded by something else on the page.
+     */
+    private function onPage(string $id): bool
+    {
+        if ($this->page === null) {
+            return false;
+        }
+
+        // Its ID next to a Google loader (gtm.js, gtag.js), or quoted in a script: not a mention in text.
+        $id = preg_quote($id, '~');
+
+        return (bool) preg_match('~googletagmanager\.com/(?:gtm\.js|gtag/js)\?id='.$id.'\b|[\'"]'.$id.'[\'"]~', $this->page);
     }
 
     private function scripts(string $placement): string

@@ -85,6 +85,20 @@ class RendererTest extends TestCase
         $this->assertGreaterThan(strpos($basic, 'cdn-cookieyes.com'), strpos($basic, 'gtm.js'));
     }
 
+    public function test_google_tags_already_on_the_page_are_not_added_again(): void
+    {
+        $seomatic = "<script>(function(w,d,s,l,i){…j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;…})(window,document,'script','dataLayer','GTM-ABC1234');</script>";
+        $head = $this->renderer('cookiebot')->head('<html><head>'.$seomatic.'</head><body></body></html>');
+
+        $this->assertStringNotContainsString("'dataLayer',\"GTM-ABC1234\"", $head);
+        $this->assertStringContainsString('<!-- Cookie Connect: GTM-ABC1234 is already on this page, so it isn\'t added again. -->', $head);
+        $this->assertStringContainsString('gtag/js?id=G-ABC123XYZ9', $head, 'GA4 is still added: only GTM was there.');
+        $this->assertStringContainsString("'consent','default'", $head, 'The defaults still come first.');
+
+        $unrelated = $this->renderer('cookiebot')->head('<html><body><p>Our GTM-ABC1234 container</p></body></html>');
+        $this->assertStringContainsString('"GTM-ABC1234");', $unrelated, 'A mention in text is not a tag.');
+    }
+
     public function test_no_defaults_where_the_platform_sets_them(): void
     {
         $this->assertStringNotContainsString("'consent','default'", $this->head($this->renderer('iubenda')));
