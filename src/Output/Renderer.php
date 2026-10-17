@@ -43,6 +43,8 @@ final class Renderer
 
     private ?string $page = null;
 
+    private bool $printed = false;
+
     public function __construct(
         private readonly Settings $settings,
         private readonly Context $context = new Context,
@@ -73,7 +75,7 @@ final class Renderer
             ! $this->settings->active => 'off',
             $this->settings->provider === null => 'none',
             $this->provider === null => 'unknown',
-            $this->problems() !== [] => 'incomplete',
+            $this->blockingProblems() !== [] => 'incomplete',
             default => 'live',
         };
     }
@@ -92,12 +94,25 @@ final class Renderer
     }
 
     /**
+     * The problems that stop the platform loading: its own settings. A bad
+     * Google ID or script is left out on its own instead, so one mistake
+     * there doesn't take the consent platform off the site.
+     *
+     * @return array<string, string>
+     */
+    public function blockingProblems(): array
+    {
+        return array_filter($this->problems(), fn (string $path) => $path === 'provider' || str_starts_with($path, 'values.'), ARRAY_FILTER_USE_KEY);
+    }
+
+    /**
      * @param  string|null  $page  the rest of the page, when known: Google tags already on it (from SEOmatic, another
      *                             plugin or a template) aren't added again
      */
     public function head(?string $page = null): string
     {
         $this->page = $page;
+        $this->printed = true;
         $live = $this->isLive();
         $parts = [];
 
@@ -165,11 +180,11 @@ final class Renderer
             };
         }
 
-        return (new Gate(
+        return $this->track((new Gate(
             $this->provider,
             $this->provider?->categoryMap($this->settings->categoryMap) ?? [],
             $this->context->nonce,
-        ))->apply($html, $categories);
+        ))->apply($html, $categories));
     }
 
     /**
@@ -230,25 +245,30 @@ final class Renderer
             return $html;
         }
 
-        $replacements = [
-            'cookie_declaration' => fn () => $this->declaration(),
-            'cookie_settings' => fn () => $this->settingsLink($settingsText, [], 'a'),
-        ];
+        // Text between tags only: never inside a tag, a script, a style or a textarea.
+        $parts = preg_split('~(<script\b.*?</script\s*>|<style\b.*?</style\s*>|<textarea\b.*?</textarea\s*>|<!--.*?-->|<[^>]*>)~is', $html, -1, PREG_SPLIT_DELIM_CAPTURE) ?: [$html];
 
-        return (string) preg_replace_callback(
-            '~(<p>\s*)?\{(cookie_declaration|cookie_settings)\}(\s*</p>)?~',
-            function (array $m) use ($replacements) {
-                $html = $replacements[$m[2]]();
-                $wrapped = $m[1] !== '' && ($m[3] ?? '') !== '';
+        foreach ($parts as $i => $part) {
+            if ($i % 2 === 1 || ! str_contains($part, '{cookie_')) {
+                continue;
+            }
 
-                if ($m[2] === 'cookie_declaration' && $wrapped) {
-                    return $html;
-                }
+            // A declaration alone in a paragraph takes the paragraph's place.
+            if (trim($part) === '{cookie_declaration}' && preg_match('~^<p(\s[^>]*)?>$~i', $parts[$i - 1] ?? '') && preg_match('~^</p\s*>$~i', $parts[$i + 1] ?? '')) {
+                $parts[$i - 1] = '';
+                $parts[$i + 1] = '';
+                $parts[$i] = $this->declaration();
 
-                return $m[1].$html.($m[3] ?? '');
-            },
-            $html,
-        );
+                continue;
+            }
+
+            $parts[$i] = strtr($part, [
+                '{cookie_declaration}' => $this->declaration(),
+                '{cookie_settings}' => $this->settingsLink($settingsText, [], 'a'),
+            ]);
+        }
+
+        return implode('', $parts);
     }
 
     /**
@@ -291,12 +311,21 @@ final class Renderer
     }
 
     /**
-     * 'sha256-…' sources for the inline scripts printed so far.
+     * 'sha256-…' sources for the inline scripts Cookie Connect prints (its
+     * own, the platform's, Google's and the Control Panel's scripts), and
+     * those held back with gate() so far.
      *
      * @return list<string>
      */
     public function cspHashes(): array
     {
+        if (! $this->printed) {
+            // Not printed yet (it's added to the page after templates render): work them out.
+            $this->head($this->page);
+            $this->bodyStart();
+            $this->bodyEnd();
+        }
+
         return array_map(fn (string $code) => "'sha256-".base64_encode(hash('sha256', $code, true))."'", $this->inlineScripts());
     }
 
@@ -344,14 +373,17 @@ final class Renderer
         $google = $this->settings->google;
         $parts = [];
 
-        foreach (array_filter([$google->gtmId, $google->ga4Id]) as $id) {
+        $gtmId = $google->gtmId !== null && preg_match(GoogleTags::GTM_PATTERN, $google->gtmId) ? $google->gtmId : null;
+        $ga4Id = $google->ga4Id !== null && preg_match(GoogleTags::GA4_PATTERN, $google->ga4Id) ? $google->ga4Id : null;
+
+        foreach (array_filter([$gtmId, $ga4Id]) as $id) {
             if ($this->onPage($id)) {
                 $parts[] = "<!-- Cookie Connect: {$id} is already on this page, so it isn't added again. -->";
             }
         }
 
-        if ($google->gtmId !== null && ! $this->onPage($google->gtmId)) {
-            $id = $this->json($google->gtmId);
+        if ($gtmId !== null && ! $this->onPage($gtmId)) {
+            $id = $this->json($gtmId);
             $parts[] = $this->script(
                 "(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});"
                 ."var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'',n=d.currentScript&&d.currentScript.nonce;"
@@ -361,12 +393,13 @@ final class Renderer
             );
         }
 
-        if ($google->ga4Id !== null && ! $this->onPage($google->ga4Id)) {
-            $id = $this->json($google->ga4Id);
-            $ga4 = Tag::make('script', ['async' => true, 'src' => 'https://www.googletagmanager.com/gtag/js?id='.rawurlencode($google->ga4Id)])
+        if ($ga4Id !== null && ! $this->onPage($ga4Id)) {
+            $id = $this->json($ga4Id);
+            $ga4 = Tag::make('script', ['async' => true, 'src' => 'https://www.googletagmanager.com/gtag/js?id='.rawurlencode($ga4Id)])
                 ."\n".Tag::make('script', [], "window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config',{$id});");
 
-            if ($google->mode === 'basic' && $this->isLive()) {
+            // Without Consent Mode, or in basic mode, Analytics waits for consent to analytics.
+            if ((! $google->consentMode || $google->mode === 'basic') && $this->isLive()) {
                 $parts[] = $this->track($this->gate($ga4, [Category::Analytics]));
             } else {
                 $parts[] = $this->track($this->withAttributes($ga4, $this->exempt()));
@@ -399,7 +432,7 @@ final class Renderer
 
         $html = array_map(
             fn (Script $script) => $this->track($this->gate(trim($script->code), $script->categories)),
-            array_values(array_filter($this->settings->scripts, fn (Script $s) => $s->enabled && $s->placement === $placement && trim($s->code) !== '')),
+            array_values(array_filter($this->settings->scripts, fn (Script $s) => $s->enabled && $s->placement === $placement && $s->isUsable())),
         );
 
         return implode("\n", $html);

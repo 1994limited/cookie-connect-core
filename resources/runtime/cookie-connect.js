@@ -332,8 +332,9 @@
               });
             });
           }
-          var fromUser = details && details.consent && details.consent.fromUserAction;
-          emit(byId(function (id) { return categories[id] && categories[id].state === 'ALL_ACCEPTED'; }), fromUser ? true : null);
+          var consent = (details && details.consent) || {};
+          var chosen = consent.fromUserAction || consent.type === 'EXPLICIT' ? true : null;
+          emit(byId(function (id) { return categories[id] && categories[id].state === 'ALL_ACCEPTED'; }), chosen);
         }
         on(window, 'UC_CONSENT', function (event) { read(event.detail); });
         on(window, 'UC_UI_INITIALIZED', function () {
@@ -386,23 +387,31 @@
           var preferences = api.getPreferences() || {};
           var purposes = preferences.purposes || {};
           var perPurpose = Object.keys(purposes).length > 0;
-          emit(byId(function (id) { return perPurpose ? purposes[id] === true : preferences.consent === true; }), null);
+          // A stored choice has an id; before the visitor chooses there's none.
+          emit(byId(function (id) { return perPurpose ? purposes[id] === true : preferences.consent === true; }), preferences.id ? true : null);
         }
+
+        var callbacksWork = false;
+        var poll = null;
 
         ['onReady', 'onPreferenceExpressed', 'onConsentGiven', 'onConsentRejected'].forEach(function (name) {
           var theirs = callbacks[name];
           callbacks[name] = function () {
+            callbacksWork = true;
+            if (poll) { clearInterval(poll); poll = null; }
             if (typeof theirs === 'function') { theirs.apply(this, arguments); }
             read();
           };
         });
 
         // With the one-line embed iubenda may not call the callbacks above,
-        // so also read once its API is there and whenever its cookie changes.
+        // so also read once its API is there and, until a callback fires,
+        // whenever its cookie changes.
         when(function () { return window._iub.cs && window._iub.cs.api && window._iub.cs.api.getPreferences; }, function () {
           read();
+          if (callbacksWork) { return; }
           var last = cookies();
-          setInterval(function () {
+          poll = setInterval(function () {
             var now = cookies();
             if (now !== last) { last = now; read(); }
           }, 1000);

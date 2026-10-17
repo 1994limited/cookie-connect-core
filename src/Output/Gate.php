@@ -109,6 +109,11 @@ final class Gate
             return null;
         }
 
+        // Platforms swap src, not srcset: an image with one would load anyway.
+        if ($element->has('srcset')) {
+            return null;
+        }
+
         if (($this->provider->blocking['multiple'] ?? true) === false && count($categories) > 1) {
             return null;
         }

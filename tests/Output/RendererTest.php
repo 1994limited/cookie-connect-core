@@ -188,7 +188,7 @@ class RendererTest extends TestCase
         $this->assertStringNotContainsString('off()', $renderer->head());
         $this->assertStringStartsWith('<!-- Cookie Connect: body start -->', $renderer->bodyStart());
         $this->assertStringContainsString('data-cookie-connect-src="https://px.example.com/p.gif" data-cookie-connect="marketing"', $renderer->bodyStart());
-        $this->assertStringContainsString('<script src="https://chat.example.com/w.js" data-cookieyes="cookieyes-functional" data-cookie-connect-native="preferences"></script>', $renderer->bodyEnd());
+        $this->assertStringContainsString('<script data-cookie-connect-src="https://chat.example.com/w.js" type="text/plain" data-cookie-connect="preferences"></script>', $renderer->bodyEnd());
         $this->assertSame('', $this->renderer('cookieyes')->bodyEnd());
     }
 
@@ -278,6 +278,58 @@ class RendererTest extends TestCase
             .'<p>Change your mind: <a href="#cookie-settings" class="cookie-connect-settings" data-cookie-connect-open>Cookie settings</a>.</p><p>{cookie_other}</p>',
             $renderer->replaceTokens($html, 'Cookie settings'),
         );
+    }
+
+    public function test_without_consent_mode_analytics_waits_for_consent(): void
+    {
+        $head = $this->renderer('onetrust', [], ['google' => new GoogleTags(ga4Id: 'G-ABC123XYZ9', consentMode: false)])->head();
+
+        $this->assertStringContainsString('class="optanon-category-C0002"', $head);
+        $this->assertStringNotContainsString('<script async src="https://www.googletagmanager.com/gtag/js?id=G-ABC123XYZ9"></script>', $head);
+    }
+
+    public function test_a_bad_script_or_google_id_is_left_out_without_taking_the_platform_off(): void
+    {
+        $renderer = $this->renderer('cookiebot', [], [
+            'google' => new GoogleTags(gtmId: 'GTM-', ga4Id: 'G-ABC123XYZ9'),
+            'scripts' => [new Script('', [Category::Analytics], 'hj()'), new Script('Good', [Category::Analytics], '<script>ok()</script>')],
+        ]);
+
+        $this->assertSame('live', $renderer->state());
+        $this->assertNotSame([], $renderer->problems());
+        $head = $renderer->head();
+        $this->assertStringNotContainsString('gtm.js', $head);
+        $this->assertStringNotContainsString('hj()', $head);
+        $this->assertStringContainsString('ok()', $head);
+        $this->assertStringContainsString('gtag/js?id=G-ABC123XYZ9', $head);
+    }
+
+    public function test_tokens_are_only_swapped_in_text(): void
+    {
+        $html = '<input value="{cookie_settings}"><script>var q = "{cookie_settings}";</script><textarea>{cookie_declaration}</textarea><p class="x">{cookie_declaration}</p><p>{cookie_settings}</p>';
+        $out = $this->renderer('onetrust')->replaceTokens($html, 'Cookie settings');
+
+        $this->assertStringStartsWith('<input value="{cookie_settings}"><script>var q = "{cookie_settings}";</script><textarea>{cookie_declaration}</textarea>', $out);
+        $this->assertStringContainsString('<div class="cookie-connect-declaration">', $out);
+        $this->assertStringNotContainsString('<p class="x">', $out);
+        $this->assertStringContainsString('<p><a href="#cookie-settings"', $out);
+    }
+
+    public function test_csp_hashes_are_known_before_the_head_is_printed_and_include_gated_scripts(): void
+    {
+        $renderer = $this->renderer('cookiebot');
+        $gated = $renderer->gate('<script>track()</script>', 'analytics');
+
+        $this->assertContains("'sha256-".base64_encode(hash('sha256', 'track()', true))."'", $renderer->cspHashes());
+        $this->assertGreaterThan(2, count($renderer->cspHashes()), 'Its own head scripts too.');
+        $this->assertStringContainsString('track()', $gated);
+    }
+
+    public function test_settings_without_paths(): void
+    {
+        $data = ['provider' => 'x', 'values' => ['a' => 1, 'b' => 2], 'google' => ['gtmId' => 'G']];
+
+        $this->assertSame(['values' => ['b' => 2], 'google' => []], Settings::without($data, ['provider', 'values.a', 'google.gtmId', 'missing.path']));
     }
 
     public function test_the_context_tidies_host_and_language(): void

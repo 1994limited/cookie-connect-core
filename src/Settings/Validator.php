@@ -85,7 +85,7 @@ final class Validator
 
             if (trim($script->code) === '') {
                 $problems["scripts.{$i}.code"] = 'Paste the script’s code.';
-            } elseif (! preg_match('/<(script|iframe|img|noscript|link|style|div)\b/i', $script->code)) {
+            } elseif (! $script->isUsable()) {
                 $problems["scripts.{$i}.code"] = 'Paste the whole code, including its <script> tags.';
             }
         }

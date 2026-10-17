@@ -11,3 +11,7 @@ All notable changes to `1994/cookie-connect-core` are documented here. It follow
 - `Output\Injector`: adds the blocks to a finished page, so no template has to change.
 - `Settings\Settings`, `GoogleTags`, `Script` and `Validator` (IDs taken out of pasted snippets).
 - The browser script (`resources/runtime/cookie-connect.js`): `window.CookieConnect`, the `cookieconnect:change` event, Consent Mode updates, and running blocked content.
+- One bad Google ID or Control Panel script is left out on its own; only the platform's own settings stop it loading.
+- Without Consent Mode (or in basic mode), Google Analytics waits for analytics consent.
+- Tokens are only swapped in text, never inside tags, scripts or textareas.
+- `cspHashes()` works before the head is printed, and includes scripts held back with `gate()`.

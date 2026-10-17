@@ -87,6 +87,13 @@ class GateTest extends TestCase
         $this->assertSame($html, $this->renderer('cookiebot', ['active' => false, 'whenOff' => 'omit'])->gate($html, 'necessary'));
     }
 
+    public function test_an_image_with_srcset_uses_cookie_connects_blocking(): void
+    {
+        $out = $this->renderer('cookiebot')->gate('<img src="a.jpg" srcset="a.jpg 1x, b.jpg 2x">', 'marketing');
+
+        $this->assertSame('<img data-cookie-connect-src="a.jpg" data-cookie-connect-srcset="a.jpg 1x, b.jpg 2x" data-cookie-connect="marketing">', $out);
+    }
+
     public function test_an_unknown_category_is_an_error(): void
     {
         $this->expectException(\InvalidArgumentException::class);

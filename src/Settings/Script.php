@@ -47,6 +47,14 @@ final class Script
     }
 
     /**
+     * Whether there's code to print: something with tags, not a bare snippet.
+     */
+    public function isUsable(): bool
+    {
+        return (bool) preg_match('/<(script|iframe|img|noscript|link|style|div)\b/i', $this->code);
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function toArray(): array

@@ -70,6 +70,39 @@ final class Settings
     }
 
     /**
+     * Settings data without the dotted paths given ("provider",
+     * "values.cbid", "google.gtmId"), e.g. those fixed in a config file,
+     * so they aren't saved alongside it.
+     *
+     * @param  array<string, mixed>  $data
+     * @param  list<string>  $paths
+     * @return array<string, mixed>
+     */
+    public static function without(array $data, array $paths): array
+    {
+        foreach ($paths as $path) {
+            $keys = explode('.', $path);
+            $last = array_pop($keys);
+            $node = &$data;
+
+            foreach ($keys as $key) {
+                if (! isset($node[$key]) || ! is_array($node[$key])) {
+                    unset($node);
+
+                    continue 2;
+                }
+
+                $node = &$node[$key];
+            }
+
+            unset($node[$last]);
+            unset($node);
+        }
+
+        return $data;
+    }
+
+    /**
      * @param  array<string, mixed>  $changes
      */
     public function with(array $changes): self

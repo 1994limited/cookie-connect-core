@@ -40,13 +40,12 @@ categories:
   analytics: analytics
   marketing: advertisement
 
-# CookieYes only marks scripts with a src, one category each. Everything
-# else uses Cookie Connect's own blocking.
+# CookieYes marks only scripts with a src (data-cookieyes), and leaves them
+# runnable: if CookieYes's own script doesn't load (an ad blocker, say) they
+# run anyway. So everything uses Cookie Connect's own blocking, released
+# from CookieYes's consent, which fails closed.
 blocking:
-  multiple: false
-  script_src:
-    strategy: native
-    attrs: { data-cookieyes: 'cookieyes-{categories}' }
+  script_src: { strategy: managed }
   script_inline: { strategy: managed }
   iframe: { strategy: managed }
   img: { strategy: managed }

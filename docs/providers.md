@@ -9,14 +9,14 @@ Each consent platform is one YAML file in `resources/providers`, named after its
 | Cookiebot | Its own (`data-cookieconsent`) | Cookie Connect | `cd.js` script |
 | Usercentrics | Cookie Connect's (it blocks by service name, not category) | Cookie Connect | `uc-embed` |
 | OneTrust | Its own (`optanon-category-…`); images: Cookie Connect's | Cookie Connect, before Google tags and OneTrust | `ot-sdk-cookie-policy` |
-| CookieYes | Its own for scripts with a `src` (`data-cookieyes`); the rest Cookie Connect's | Cookie Connect | `cky-audit-table-element` |
+| CookieYes | Cookie Connect's (CookieYes's `data-cookieyes` leaves scripts runnable if CookieYes fails to load) | Cookie Connect | `cky-audit-table-element` |
 | iubenda | Its own (`_iub_cs_activate`, `data-iub-purposes`) | iubenda | Cookie policy embed |
 | Termly | Its own (`data-categories`), one category per element | Termly (or Cookie Connect if turned off) | `termly-embed` |
 | CookieFirst | Its own (`data-cookiefirst-category`), one category per element; images: Cookie Connect's | Cookie Connect (or CookieFirst if set there) | `cookiefirst-policy-page` |
 | Cookie-Script | Its own (`data-cookiescript`, `data-cookiecategory`) | Cookie Connect | Cookie report script |
 | Custom | Cookie Connect's | Cookie Connect (or the platform) | None |
 
-Module scripts always use Cookie Connect's blocking: platforms that flip `type` back would lose `module`.
+Module scripts, and images with `srcset`, always use Cookie Connect's blocking: platforms that flip `type` back would lose `module`, and none of them swaps `srcset`.
 
 ## The file format
 

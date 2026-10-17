@@ -156,6 +156,23 @@ test('iubenda: chains onto existing callbacks and reads purposes', async () => {
   assert.equal(state.preferences, false);
 });
 
+test('iubenda: a stored choice (with an id) counts as decided', async () => {
+  const window = page({ config: { provider: 'iubenda', state: 'live', map: { analytics: '4' } } });
+  window._iub.cs = { api: { getPreferences: () => ({ id: 'abc', purposes: { 4: true } }) } };
+  window._iub.csConfiguration.callback.onReady(true);
+  const state = await window.CookieConnect.ready;
+
+  assert.equal(state.decided, true);
+});
+
+test('Usercentrics: an explicit stored choice counts as decided', async () => {
+  const window = page({ config: { provider: 'usercentrics', state: 'live', map: { analytics: 'marketing' } } });
+  fire(window, 'UC_CONSENT', { consent: { fromUserAction: false, type: 'EXPLICIT' }, categories: { marketing: { state: 'ALL_ACCEPTED' } } });
+  const state = await window.CookieConnect.ready;
+
+  assert.equal(state.decided, true);
+});
+
 test('iubenda without per-purpose consent: one answer for everything', async () => {
   const window = page({ config: { provider: 'iubenda', state: 'live', map: { necessary: '1', preferences: '2', analytics: '4', marketing: '5' } } });
   window._iub.cs = { api: { getPreferences: () => ({ consent: true }) } };
