@@ -80,6 +80,17 @@ final class Settings
      */
     public static function without(array $data, array $paths): array
     {
+        // "google" alongside "google.gtmId" means the group was named on the way to the field: drop the field only.
+        $paths = array_filter($paths, function (string $path) use ($paths) {
+            foreach ($paths as $other) {
+                if (str_starts_with($other, $path.'.')) {
+                    return false;
+                }
+            }
+
+            return true;
+        });
+
         foreach ($paths as $path) {
             $keys = explode('.', $path);
             $last = array_pop($keys);

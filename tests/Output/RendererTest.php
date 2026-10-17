@@ -329,7 +329,8 @@ class RendererTest extends TestCase
     {
         $data = ['provider' => 'x', 'values' => ['a' => 1, 'b' => 2], 'google' => ['gtmId' => 'G']];
 
-        $this->assertSame(['values' => ['b' => 2], 'google' => []], Settings::without($data, ['provider', 'values.a', 'google.gtmId', 'missing.path']));
+        $this->assertSame(['values' => ['b' => 2], 'google' => []], Settings::without($data, ['provider', 'values', 'values.a', 'google', 'google.gtmId', 'missing.path']));
+        $this->assertSame(['provider' => 'x'], Settings::without($data, ['values', 'google']));
     }
 
     public function test_the_context_tidies_host_and_language(): void
