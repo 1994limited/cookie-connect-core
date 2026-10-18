@@ -2,8 +2,10 @@
 
 namespace NineteenNinetyFour\CookieConnect\Core\Tests\Output;
 
+use NineteenNinetyFour\CookieConnect\Core\Category;
 use NineteenNinetyFour\CookieConnect\Core\Output\Context;
 use NineteenNinetyFour\CookieConnect\Core\Output\Renderer;
+use NineteenNinetyFour\CookieConnect\Core\Settings\Script;
 use NineteenNinetyFour\CookieConnect\Core\Settings\Settings;
 use NineteenNinetyFour\CookieConnect\Core\Tests\Fixtures\Sites;
 use NineteenNinetyFour\CookieConnect\Core\Tests\Snapshots;
@@ -82,6 +84,7 @@ class GateTest extends TestCase
         $off = fn (string $mode) => $this->renderer('cookiebot', ['active' => false, 'whenOff' => $mode])->gate($html, 'analytics');
 
         $this->assertSame('<script type="text/plain" data-cookie-connect="analytics" nonce="n0nce">track()</script>', $off('block'));
+        $this->assertStringContainsString('hj()', $this->renderer('cookiebot', ['active' => false, 'scripts' => [new Script('Hotjar', [Category::Analytics], '<script>hj()</script>')]])->head(), 'Control Panel scripts stay on the page, inert, when blocked.');
         $this->assertSame($html, $off('run'));
         $this->assertSame('', $off('omit'));
         $this->assertSame($html, $this->renderer('cookiebot', ['active' => false, 'whenOff' => 'omit'])->gate($html, 'necessary'));
@@ -92,6 +95,15 @@ class GateTest extends TestCase
         $out = $this->renderer('cookiebot')->gate('<img src="a.jpg" srcset="a.jpg 1x, b.jpg 2x">', 'marketing');
 
         $this->assertSame('<img data-cookie-connect-src="a.jpg" data-cookie-connect-srcset="a.jpg 1x, b.jpg 2x" data-cookie-connect="marketing">', $out);
+    }
+
+    public function test_a_marker_alone_doesnt_stop_gating(): void
+    {
+        $out = $this->renderer('custom')->gate('<script data-cookie-connect="analytics">track()</script><img data-cookie-connect-native="x" src="p.gif">', 'marketing');
+
+        $this->assertStringContainsString('<script data-cookie-connect="marketing" type="text/plain"', $out);
+        $this->assertStringContainsString('data-cookie-connect-src="p.gif"', $out);
+        $this->assertStringNotContainsString(' src="p.gif"', $out);
     }
 
     public function test_an_unknown_category_is_an_error(): void

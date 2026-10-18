@@ -15,3 +15,7 @@ All notable changes to `1994/cookie-connect-core` are documented here. It follow
 - Without Consent Mode (or in basic mode), Google Analytics waits for analytics consent.
 - Tokens are only swapped in text, never inside tags, scripts or textareas.
 - `cspHashes()` works before the head is printed, and includes scripts held back with `gate()`.
+- Cookie-Script elements needing several categories use Cookie Connect's own blocking.
+- A `data-cookie-connect` attribute already in content no longer stops it being held back.
+- Google tags count as already on the page only when a script loads them, not when their ID is mentioned.
+- Control Panel scripts stay on the page, inert, when the site is off and set to keep content blocked.

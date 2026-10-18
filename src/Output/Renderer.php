@@ -414,19 +414,35 @@ final class Renderer
      */
     private function onPage(string $id): bool
     {
-        if ($this->page === null) {
+        if ($this->page === null || ! str_contains($this->page, $id)) {
             return false;
         }
 
-        // Its ID next to a Google loader (gtm.js, gtag.js), or quoted in a script: not a mention in text.
-        $id = preg_quote($id, '~');
+        // Only in a script: a Google loader for this ID, or inline code that loads it. Not a mention in text or an attribute.
+        foreach (Fragment::find($this->page) as $element) {
+            if ($element->name !== 'script') {
+                continue;
+            }
 
-        return (bool) preg_match('~googletagmanager\.com/(?:gtm\.js|gtag/js)\?id='.$id.'\b|[\'"]'.$id.'[\'"]~', $this->page);
+            $src = (string) $element->get('src');
+
+            if ($src !== '' && preg_match('~googletagmanager\.com/(?:gtm\.js|gtag/js)\?(?:.*&)?id='.preg_quote($id, '~').'(?:&|$)~', $src)) {
+                return true;
+            }
+
+            $code = (string) $element->content;
+
+            if (str_contains($code, $id) && preg_match('~gtm\.js|gtag/js|gtag\(\s*[\'"]config~', $code)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function scripts(string $placement): string
     {
-        if (! $this->isLive() && $this->settings->whenOff !== 'run') {
+        if (! $this->isLive() && $this->settings->whenOff === 'omit') {
             return '';
         }
 

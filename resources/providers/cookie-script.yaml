@@ -56,8 +56,11 @@ categories:
   analytics: performance
   marketing: targeting
 
+# Cookie-Script takes several categories space-separated, but doesn't say
+# whether all are needed or any; elements needing several use Cookie
+# Connect's own blocking, which needs all.
 blocking:
-  join: ' '
+  multiple: false
   script_inline:
     strategy: native
     attrs: { type: text/plain, data-cookiescript: accepted, data-cookiecategory: '{categories}' }

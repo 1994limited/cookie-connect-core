@@ -18,7 +18,8 @@ final class Tag
         $html = '<'.$name;
 
         foreach ($attributes as $attribute => $value) {
-            if ($value === null || $value === false) {
+            // Names never come from content, but a stray one mustn't open a hole: only plain attribute names.
+            if ($value === null || $value === false || ! preg_match('/^[A-Za-z_:][A-Za-z0-9_.:-]*$/', (string) $attribute)) {
                 continue;
             }
 

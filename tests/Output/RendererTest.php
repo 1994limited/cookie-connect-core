@@ -95,8 +95,11 @@ class RendererTest extends TestCase
         $this->assertStringContainsString('gtag/js?id=G-ABC123XYZ9', $head, 'GA4 is still added: only GTM was there.');
         $this->assertStringContainsString("'consent','default'", $head, 'The defaults still come first.');
 
-        $unrelated = $this->renderer('cookiebot')->head('<html><body><p>Our GTM-ABC1234 container</p></body></html>');
-        $this->assertStringContainsString('"GTM-ABC1234");', $unrelated, 'A mention in text is not a tag.');
+        $unrelated = $this->renderer('cookiebot')->head('<html><body><p>Our GTM-ABC1234 container</p><div data-container="GTM-ABC1234"></div><script type="application/json">{"id":"GTM-ABC1234"}</script></body></html>');
+        $this->assertStringContainsString('"GTM-ABC1234");', $unrelated, 'A mention in text, an attribute or JSON is not a tag.');
+
+        $loader = $this->renderer('cookiebot')->head('<html><head><script async src="https://www.googletagmanager.com/gtag/js?id=G-ABC123XYZ9"></script></head></html>');
+        $this->assertStringNotContainsString('<script async src="https://www.googletagmanager.com/gtag/js?id=G-ABC123XYZ9"', str_replace('<!-- Cookie Connect: G-ABC123XYZ9', '', $loader));
     }
 
     public function test_no_defaults_where_the_platform_sets_them(): void
@@ -250,6 +253,11 @@ class RendererTest extends TestCase
         $head = $this->head($this->renderer('custom', ['openJs' => 'x("</script><script>alert(1)</script>")']));
 
         $this->assertStringNotContainsString('</script><script>alert(1)', $head);
+    }
+
+    public function test_attribute_names_must_be_plain(): void
+    {
+        $this->assertSame('<button type="button" class="cookie-connect-settings" data-cookie-connect-open>x</button>', $this->renderer('cookiebot')->settingsLink('x', ['x onmouseover' => 'alert(1)', 'a"b' => 'c']));
     }
 
     public function test_settings_link_and_placeholder(): void

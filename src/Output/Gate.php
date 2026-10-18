@@ -65,7 +65,10 @@ final class Gate
      */
     private function kind(Element $element): ?string
     {
-        if ($element->has('data-cookie-connect') || $element->has('data-cookie-connect-native')) {
+        // Already held back by an earlier gate. A marker alone isn't enough (content could carry one):
+        // scripts must also be inert (below), iframes and images must have nothing left to load.
+        if ($element->name !== 'script' && ($element->has('data-cookie-connect') || $element->has('data-cookie-connect-native'))
+            && (! $element->has('src') || $element->get('src') === 'about:blank') && ! $element->has('srcset')) {
             return null;
         }
 
@@ -165,6 +168,10 @@ final class Gate
             }
 
             $element->set('type', 'text/plain');
+        }
+
+        if ($element->name !== 'script' && $element->get('src') === 'about:blank') {
+            $element->remove('src');
         }
 
         $element->rename('src', 'data-cookie-connect-src');
