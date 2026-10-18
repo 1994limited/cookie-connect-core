@@ -34,7 +34,7 @@ enum Category: string
             if ($category === null) {
                 throw new \InvalidArgumentException(sprintf(
                     'Unknown cookie category "%s". Use necessary, preferences, analytics or marketing.',
-                    $name,
+                    is_scalar($name) ? (string) $name : get_debug_type($name),
                 ));
             }
 
