@@ -2,7 +2,7 @@
 
 All notable changes to `1994/cookie-connect-core` are documented here. It follows semantic versioning: a minor or patch release doesn't break the public API.
 
-## Unreleased
+## 1.0.0 - 2026-10-18
 
 ### Added
 - Providers as data (`resources/providers/*.yaml`, checked by `Providers\ProviderSchema`): Cookiebot, Usercentrics, OneTrust, CookieYes, iubenda, Termly, CookieFirst, Cookie-Script and Custom, each checked against the platform's docs on 2026-10-17.
